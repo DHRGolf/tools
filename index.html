@@ -67,7 +67,7 @@
   .upload-label { font-size: 13px; font-weight: 500; color: var(--black); margin-bottom: 4px; }
   .upload-hint { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 12px; }
   .upload-filename { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--forest); margin-top: 8px; word-break: break-all; }
-  input[type="file"] { display: none; }
+  input[type="file"] { position: absolute; visibility: hidden; width: 0; height: 0; }
   .upload-btn {
     display: inline-block; padding: 7px 16px; font-size: 12px; font-weight: 600;
     font-family: 'DM Sans', sans-serif; color: var(--forest);
@@ -195,12 +195,12 @@
     </div>
 
     <div>
-      <input type="file" id="quoteFile" accept=".pdf" />
+      <input type="file" id="quoteFile" accept=".pdf" style="position:absolute;visibility:hidden;width:0;height:0;" />
       <div class="upload-zone" id="quoteZone">
         <div class="upload-icon" id="quoteIcon">📄</div>
         <div class="upload-label" id="quoteLabel">Drop PDF here</div>
         <div class="upload-hint">or use the button below</div>
-        <label for="quoteFile" class="upload-btn">Browse PDF</label>
+        <button type="button" class="upload-btn" onclick="document.getElementById('quoteFile').click()">Browse PDF</button>
         <div class="upload-filename" id="quoteFilename"></div>
       </div>
     </div>
@@ -215,12 +215,12 @@
         </div>
       </div>
       <div id="sourceUploadArea" style="display:none;margin-top:10px;">
-        <input type="file" id="sourceFile" accept=".pdf" />
+        <input type="file" id="sourceFile" accept=".pdf" style="position:absolute;visibility:hidden;width:0;height:0;" />
         <div class="upload-zone" id="sourceZone">
           <div class="upload-icon">📎</div>
           <div class="upload-label">Drop source doc here</div>
           <div class="upload-hint">email, site visit notes, etc.</div>
-          <label for="sourceFile" class="upload-btn">Browse PDF</label>
+          <button type="button" class="upload-btn" onclick="document.getElementById('sourceFile').click()">Browse PDF</button>
           <div class="upload-filename" id="sourceFilename"></div>
         </div>
       </div>
