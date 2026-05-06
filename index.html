@@ -57,17 +57,24 @@
   .section-label { font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 
   .upload-zone {
-    border: 2px dashed var(--border); border-radius: 10px; padding: 28px 20px;
-    text-align: center; cursor: pointer; transition: all 0.2s;
-    background: var(--surface); position: relative;
+    border: 2px dashed var(--border); border-radius: 10px; padding: 20px;
+    text-align: center; transition: all 0.2s;
+    background: var(--surface);
   }
-  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--forest); background: rgba(30,122,46,0.04); }
+  .upload-zone.drag-over { border-color: var(--forest); background: rgba(30,122,46,0.04); }
   .upload-zone.has-file { border-color: var(--pass); background: rgba(39,174,96,0.04); }
-  .upload-icon { font-size: 28px; margin-bottom: 10px; }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
   .upload-label { font-size: 13px; font-weight: 500; color: var(--black); margin-bottom: 4px; }
-  .upload-hint { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .upload-hint { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 12px; }
   .upload-filename { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--forest); margin-top: 8px; word-break: break-all; }
-  input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  input[type="file"] { display: none; }
+  .upload-btn {
+    display: inline-block; padding: 7px 16px; font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; color: var(--forest);
+    border: 1.5px solid var(--forest); border-radius: 6px;
+    cursor: pointer; background: white; transition: all 0.15s;
+  }
+  .upload-btn:hover { background: var(--forest); color: white; }
 
   .toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
   .toggle-switch { width: 36px; height: 20px; background: var(--border); border-radius: 10px; position: relative; transition: background 0.2s; flex-shrink: 0; }
@@ -183,11 +190,12 @@
 
     <div>
       <div class="section-label">Price Quote PDF</div>
+      <input type="file" id="quoteFile" accept=".pdf" />
       <div class="upload-zone" id="quoteZone">
-        <input type="file" id="quoteFile" accept=".pdf" />
         <div class="upload-icon" id="quoteIcon">📄</div>
-        <div class="upload-label" id="quoteLabel">Drop quote PDF here</div>
-        <div class="upload-hint">or click to browse</div>
+        <div class="upload-label" id="quoteLabel">Drop PDF here</div>
+        <div class="upload-hint">or use the button below</div>
+        <label for="quoteFile" class="upload-btn">Browse PDF</label>
         <div class="upload-filename" id="quoteFilename"></div>
       </div>
     </div>
@@ -202,11 +210,12 @@
         </div>
       </div>
       <div id="sourceUploadArea" style="display:none;margin-top:10px;">
+        <input type="file" id="sourceFile" accept=".pdf" />
         <div class="upload-zone" id="sourceZone">
-          <input type="file" id="sourceFile" accept=".pdf" />
           <div class="upload-icon">📎</div>
           <div class="upload-label">Drop source doc here</div>
-          <div class="upload-hint" id="sourceHint">email, site visit notes, etc.</div>
+          <div class="upload-hint">email, site visit notes, etc.</div>
+          <label for="sourceFile" class="upload-btn">Browse PDF</label>
           <div class="upload-filename" id="sourceFilename"></div>
         </div>
       </div>
@@ -247,7 +256,7 @@
     <div class="empty-state">
       <div class="empty-icon">🔍</div>
       <div class="empty-title">No quote loaded</div>
-      <div class="empty-sub">Upload a price quote PDF and click Run Check to review before it goes to Joy.</div>
+      <div class="empty-sub">Upload a price quote PDF and click Run Check to review before it goes out for approval.</div>
     </div>
   </div>
 </div>
@@ -305,7 +314,8 @@ function updateRunBtn() {
     e.preventDefault(); zone.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
     if (file && file.type === 'application/pdf') {
-      const input = zone.querySelector('input[type="file"]');
+      const inputId = id === 'quoteZone' ? 'quoteFile' : 'sourceFile';
+      const input = document.getElementById(inputId);
       const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
       input.dispatchEvent(new Event('change'));
     }
@@ -331,7 +341,7 @@ async function runCheck() {
   }, 1800);
 
   try {
-    const systemPrompt = `You are a DHR Golf Construction price quote reviewer. You check quotes before they go to Joy (VP, final approver) for review. DHR is a California-based golf course construction company. Estimators Nico Ramullo and Milena Navalesi (Argentine nationals, ESL speakers) prepare quotes. Common issues: Argentine date/number formatting, Spanish text fragments, unfilled template placeholders, alternates section not cleaned up, inconsistency between scope text and line items.
+    const systemPrompt = `You are a golf course construction company price quote reviewer. You check quotes before they go to the VP and final approver for review. The company is a California-based golf course construction company. Quotes are prepared by estimators for whom English is a second language (native Spanish speakers). Common issues: Spanish date/number formatting conventions, Spanish text fragments, unfilled template placeholders, alternates section not cleaned up, inconsistency between scope text and line items.
 
 Return ONLY valid JSON. No preamble, no markdown fences.
 
@@ -359,7 +369,7 @@ TIER 1 — check ALL:
 - Undefined abbreviations in location descriptions (GS, NR, etc. without definition)
 - Alternates A/B/C checkboxes in acceptance block with no corresponding alternates in quote body — flag if present when no alternates exist
 - "Owner will supply" or "Owner supplied" in scope body — should reference Materials Responsibility table instead
-- Dates not in US format MM/DD/YYYY or Month DD YYYY — Argentine format is DD/MM/YYYY, flag if day > 12 is in month position or if format is ambiguous
+- Dates not in US format MM/DD/YYYY or Month DD YYYY — flag if day > 12 is in month position or if format is ambiguous
 - Spanish language text anywhere
 - Number formatting: period as decimal separator, comma as thousands (not reversed)
 - Paper size should be US letter 8.5x11, not A4
@@ -449,7 +459,8 @@ function renderResults(r) {
         <div class="results-meta">${esc(r.client || '')}${r.client && r.quote_date ? ' · ' : ''}${esc(r.quote_date || '')}</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <button class="print-btn" onclick="window.print()">🖨 Print</button>
+        <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+        <button class="print-btn" onclick="downloadReport('${esc(r.project || 'Quote_Review')}', '${esc(r.quote_date || '')}')">⬇ Download Report</button>
         <div class="score-pill">
           <div><div class="score-num" style="color:${scoreColor}">${totalFlags + totalWarns}</div><div class="score-label">${scoreLabel}</div></div>
         </div>
@@ -506,7 +517,74 @@ function renderResults(r) {
   document.getElementById('content').innerHTML = html;
 }
 
-function toggleTier(key) {
+function downloadReport(project, date) {
+  const reportContent = document.getElementById('content').innerHTML;
+  const filename = (project + (date ? '_' + date : '') + '_Review').replace(/[^a-zA-Z0-9_\-]/g, '_') + '.html';
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quote Review — ${project}</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 24px; color: #000; background: #fff; }
+  .results-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 20px; flex-wrap: wrap; }
+  .results-title { font-size: 20px; font-weight: 700; }
+  .results-meta { font-size: 12px; color: #666; margin-top: 4px; font-family: monospace; }
+  .score-pill { display: flex; align-items: center; background: #f5f5f3; border: 1px solid #ddd; border-radius: 10px; padding: 10px 16px; }
+  .score-num { font-size: 28px; font-weight: 700; font-family: monospace; line-height: 1; }
+  .score-label { font-size: 10px; color: #666; font-family: monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+  .summary-card { border: 1px solid #ddd; border-radius: 8px; padding: 14px; border-top: 3px solid transparent; }
+  .summary-card-count { font-size: 24px; font-weight: 700; font-family: monospace; line-height: 1; margin-bottom: 4px; }
+  .summary-card-label { font-size: 10px; color: #666; font-family: monospace; text-transform: uppercase; }
+  .tier-section { border: 1px solid #ddd; border-radius: 10px; margin-bottom: 16px; overflow: hidden; page-break-inside: avoid; }
+  .tier-header { padding: 14px 18px; display: flex; align-items: center; gap: 12px; background: #f9f9f7; border-bottom: 1px solid #ddd; }
+  .tier-badge { font-size: 10px; font-family: monospace; font-weight: 600; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .tier-name { font-size: 13px; font-weight: 700; flex: 1; }
+  .tier-count { font-size: 12px; font-family: monospace; }
+  .tier-chevron { display: none; }
+  .tier-body { display: block !important; padding: 4px 0; }
+  .finding { padding: 12px 18px; border-bottom: 1px solid #eee; display: grid; grid-template-columns: 24px 1fr; gap: 12px; }
+  .finding:last-child { border-bottom: none; }
+  .finding-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-top: 1px; }
+  .finding-icon.flag { background: #fdecea; color: #c0392b; }
+  .finding-icon.warn { background: #fef4e8; color: #e67e22; }
+  .finding-icon.pass { background: #eafaf1; color: #27ae60; }
+  .finding-rule { font-size: 11px; font-family: monospace; color: #888; margin-bottom: 3px; text-transform: uppercase; }
+  .finding-text { font-size: 13px; line-height: 1.5; }
+  .finding-fix { font-size: 12px; color: #1E7A2E; margin-top: 6px; padding: 8px 10px; background: #f0faf2; border-radius: 6px; border-left: 3px solid #1E7A2E; line-height: 1.5; }
+  .finding-fix-label { font-size: 10px; font-family: monospace; font-weight: 700; text-transform: uppercase; margin-bottom: 3px; color: #1E7A2E; opacity: 0.7; }
+  .all-clear { padding: 16px 18px; color: #27ae60; font-size: 13px; font-weight: 500; }
+  .submittal-section { border: 1px solid #ddd; border-radius: 10px; margin-top: 16px; overflow: hidden; }
+  .submittal-header { padding: 14px 18px; background: #1E7A2E; display: flex; justify-content: space-between; align-items: center; }
+  .submittal-title { font-size: 13px; font-weight: 700; color: white; }
+  .submittal-sub { font-size: 11px; color: rgba(255,255,255,0.7); font-family: monospace; }
+  .submittal-body { padding: 16px 18px; }
+  .submittal-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+  .submittal-item:last-child { border-bottom: none; }
+  .submittal-check { width: 16px; height: 16px; border: 2px solid #ddd; border-radius: 3px; flex-shrink: 0; margin-top: 1px; }
+  .submittal-name { font-weight: 600; }
+  .submittal-spec { font-size: 11px; color: #666; font-family: monospace; margin-top: 2px; }
+  .submittal-missing { font-size: 11px; color: #c0392b; font-family: monospace; margin-top: 2px; }
+  .print-btn { display: none; }
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee; font-size: 11px; color: #aaa; font-family: monospace; }
+  @media print { body { margin: 20px; } }
+</style>
+</head>
+<body>
+${reportContent}
+<div class="footer">DHR Price Quote Checker · Generated ${new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}</div>
+</body>
+</html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
   document.getElementById(`body-${key}`)?.classList.toggle('open');
   document.getElementById(`chevron-${key}`)?.classList.toggle('open');
 }
