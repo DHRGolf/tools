@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DHR Price Quote Checker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --forest: #1E7A2E;
+    --lime: #7DC130;
+    --black: #000000;
+    --white: #FFFFFF;
+    --surface: #F7F7F5;
+    --border: #E0E0DB;
+    --muted: #6B6B65;
+    --t1: #C0392B;
+    --t2: #E67E22;
+    --t3: #2980B9;
+    --t4: #8E44AD;
+    --pass: #27AE60;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  .header {
+    background: var(--forest);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--lime); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: var(--forest);
+    font-family: 'DM Mono', monospace;
+  }
+  .header-title { color: var(--white); font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
+  .header-sub { color: rgba(255,255,255,0.55); font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+  .badge { background: rgba(125,193,48,0.2); color: var(--lime); font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(125,193,48,0.3); text-transform: uppercase; }
+
+  .main { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 73px); }
+
+  .sidebar { background: var(--white); border-right: 1px solid var(--border); padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; }
+
+  .section-label { font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 28px 20px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: var(--surface); position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--forest); background: rgba(30,122,46,0.04); }
+  .upload-zone.has-file { border-color: var(--pass); background: rgba(39,174,96,0.04); }
+  .upload-icon { font-size: 28px; margin-bottom: 10px; }
+  .upload-label { font-size: 13px; font-weight: 500; color: var(--black); margin-bottom: 4px; }
+  .upload-hint { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .upload-filename { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--forest); margin-top: 8px; word-break: break-all; }
+  input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .toggle-switch { width: 36px; height: 20px; background: var(--border); border-radius: 10px; position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .toggle-switch.on { background: var(--forest); }
+  .toggle-switch::after { content: ''; position: absolute; width: 14px; height: 14px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: left 0.2s; }
+  .toggle-switch.on::after { left: 19px; }
+
+  .tier-legend { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .tier-legend-title { padding: 10px 14px; font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--surface); border-bottom: 1px solid var(--border); }
+  .tier-item { padding: 9px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .tier-item:last-child { border-bottom: none; }
+  .tier-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .tier-item-name { font-weight: 500; }
+  .tier-item-conf { margin-left: auto; font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); }
+
+  .run-btn {
+    background: var(--forest); color: white; border: none;
+    padding: 14px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.01em;
+  }
+  .run-btn:hover:not(:disabled) { background: #166424; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30,122,46,0.3); }
+  .run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .content { padding: 28px 32px; overflow-y: auto; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; gap: 16px; color: var(--muted); text-align: center; }
+  .empty-icon { font-size: 48px; opacity: 0.3; }
+  .empty-title { font-size: 18px; font-weight: 500; color: var(--black); opacity: 0.4; }
+  .empty-sub { font-size: 13px; max-width: 280px; line-height: 1.6; }
+
+  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; gap: 20px; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--forest); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .loading-step { font-size: 12px; color: var(--lime); font-family: 'DM Mono', monospace; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  .results-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 20px; }
+  .results-title { font-size: 20px; font-weight: 600; }
+  .results-meta { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 4px; }
+  .score-pill { display: flex; align-items: center; gap: 8px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; flex-shrink: 0; }
+  .score-num { font-size: 28px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+  .score-label { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+  .summary-card { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 14px; border-top: 3px solid transparent; }
+  .summary-card-count { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; margin-bottom: 4px; }
+  .summary-card-label { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .tier-section { background: var(--white); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+  .tier-header { padding: 14px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); }
+  .tier-header:hover { background: var(--surface); }
+  .tier-badge { font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 500; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .tier-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .tier-count { font-size: 12px; font-family: 'DM Mono', monospace; }
+  .tier-chevron { font-size: 12px; color: var(--muted); transition: transform 0.2s; }
+  .tier-chevron.open { transform: rotate(90deg); }
+  .tier-body { display: none; padding: 4px 0; }
+  .tier-body.open { display: block; }
+
+  .finding { padding: 14px 18px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; }
+  .finding:last-child { border-bottom: none; }
+  .finding-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+  .finding-icon.flag { background: rgba(192,57,43,0.1); color: var(--t1); }
+  .finding-icon.warn { background: rgba(230,126,34,0.1); color: var(--t2); }
+  .finding-icon.pass { background: rgba(39,174,96,0.1); color: var(--pass); }
+  .finding-rule { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .finding-text { font-size: 13px; line-height: 1.5; }
+  .finding-fix { font-size: 12px; color: var(--forest); margin-top: 6px; padding: 8px 10px; background: rgba(30,122,46,0.06); border-radius: 6px; border-left: 3px solid var(--forest); line-height: 1.5; }
+  .finding-fix-label { font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; color: var(--forest); opacity: 0.7; }
+
+  .submittal-section { background: var(--white); border: 1px solid var(--border); border-radius: 10px; margin-top: 16px; overflow: hidden; }
+  .submittal-header { padding: 14px 18px; background: var(--forest); display: flex; align-items: center; justify-content: space-between; }
+  .submittal-title { font-size: 13px; font-weight: 600; color: var(--white); }
+  .submittal-sub { font-size: 11px; color: rgba(255,255,255,0.6); font-family: 'DM Mono', monospace; }
+  .submittal-body { padding: 16px 18px; }
+  .submittal-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .submittal-item:last-child { border-bottom: none; }
+  .submittal-check { width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 3px; flex-shrink: 0; margin-top: 1px; }
+  .submittal-name { font-weight: 500; flex: 1; }
+  .submittal-spec { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .submittal-missing { font-size: 11px; color: var(--t1); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  .all-clear { padding: 20px 18px; display: flex; align-items: center; gap: 12px; color: var(--pass); font-size: 13px; font-weight: 500; }
+  .error-msg { background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.2); border-radius: 8px; padding: 16px; color: var(--t1); font-size: 13px; line-height: 1.6; margin-top: 20px; }
+
+  .print-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+  .print-btn:hover { border-color: var(--forest); color: var(--forest); }
+
+  @media print {
+    .sidebar, .header { display: none; }
+    .main { grid-template-columns: 1fr; }
+    .tier-body { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-mark">D</div>
+    <div>
+      <div class="header-title">DHR Price Quote Checker</div>
+      <div class="header-sub">Pre-submission review · v1.0</div>
+    </div>
+  </div>
+  <div class="badge">Beta</div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+
+    <div>
+      <div class="section-label">Price Quote PDF</div>
+      <div class="upload-zone" id="quoteZone">
+        <input type="file" id="quoteFile" accept=".pdf" />
+        <div class="upload-icon" id="quoteIcon">📄</div>
+        <div class="upload-label" id="quoteLabel">Drop quote PDF here</div>
+        <div class="upload-hint">or click to browse</div>
+        <div class="upload-filename" id="quoteFilename"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Source Document (optional)</div>
+      <div class="toggle-row" onclick="toggleSource()">
+        <div class="toggle-switch" id="toggleSwitch"></div>
+        <div>
+          <div style="font-size:13px;font-weight:500;">Include Tier 4 check</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Upload email / site visit notes</div>
+        </div>
+      </div>
+      <div id="sourceUploadArea" style="display:none;margin-top:10px;">
+        <div class="upload-zone" id="sourceZone">
+          <input type="file" id="sourceFile" accept=".pdf" />
+          <div class="upload-icon">📎</div>
+          <div class="upload-label">Drop source doc here</div>
+          <div class="upload-hint" id="sourceHint">email, site visit notes, etc.</div>
+          <div class="upload-filename" id="sourceFilename"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier-legend">
+      <div class="tier-legend-title">Check tiers</div>
+      <div class="tier-item">
+        <div class="tier-dot" style="background:var(--t1)"></div>
+        <div><div class="tier-item-name">Template Hygiene</div><div style="font-size:10px;color:var(--muted)">Tier 1</div></div>
+        <div class="tier-item-conf">High</div>
+      </div>
+      <div class="tier-item">
+        <div class="tier-dot" style="background:var(--t2)"></div>
+        <div><div class="tier-item-name">Internal Consistency</div><div style="font-size:10px;color:var(--muted)">Tier 2</div></div>
+        <div class="tier-item-conf">Med-High</div>
+      </div>
+      <div class="tier-item">
+        <div class="tier-dot" style="background:var(--t3)"></div>
+        <div><div class="tier-item-name">Structural Completeness</div><div style="font-size:10px;color:var(--muted)">Tier 3</div></div>
+        <div class="tier-item-conf">Medium</div>
+      </div>
+      <div class="tier-item">
+        <div class="tier-dot" style="background:var(--t4)"></div>
+        <div><div class="tier-item-name">Source Cross-Reference</div><div style="font-size:10px;color:var(--muted)">Tier 4</div></div>
+        <div class="tier-item-conf">Source req'd</div>
+      </div>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="runCheck()" disabled>
+      <span id="runBtnIcon">▶</span>
+      <span id="runBtnText">Run Check</span>
+    </button>
+
+  </div>
+
+  <div class="content" id="content">
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">No quote loaded</div>
+      <div class="empty-sub">Upload a price quote PDF and click Run Check to review before it goes to Joy.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let quoteFileData = null;
+let sourceFileData = null;
+let sourceEnabled = false;
+
+document.getElementById('quoteFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  quoteFileData = await readFileAsBase64(file);
+  document.getElementById('quoteZone').classList.add('has-file');
+  document.getElementById('quoteIcon').textContent = '✅';
+  document.getElementById('quoteLabel').textContent = 'Quote loaded';
+  document.getElementById('quoteFilename').textContent = file.name;
+  updateRunBtn();
+});
+
+document.getElementById('sourceFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  sourceFileData = await readFileAsBase64(file);
+  document.getElementById('sourceZone').classList.add('has-file');
+  document.getElementById('sourceFilename').textContent = file.name;
+});
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function toggleSource() {
+  sourceEnabled = !sourceEnabled;
+  document.getElementById('toggleSwitch').className = 'toggle-switch' + (sourceEnabled ? ' on' : '');
+  document.getElementById('sourceUploadArea').style.display = sourceEnabled ? 'block' : 'none';
+  if (!sourceEnabled) sourceFileData = null;
+}
+
+function updateRunBtn() {
+  document.getElementById('runBtn').disabled = !quoteFileData;
+}
+
+['quoteZone', 'sourceZone'].forEach(id => {
+  const zone = document.getElementById(id);
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+      const input = zone.querySelector('input[type="file"]');
+      const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+    }
+  });
+});
+
+async function runCheck() {
+  if (!quoteFileData) return;
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('runBtnIcon').textContent = '⏳';
+  document.getElementById('runBtnText').textContent = 'Checking...';
+
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading-state"><div class="spinner"></div><div class="loading-text">Reading quote document...</div><div class="loading-step" id="loadingStep">Tier 1 · Template Hygiene</div></div>`;
+
+  const steps = ['Tier 1 · Template Hygiene','Tier 2 · Internal Consistency','Tier 3 · Structural Completeness','Compiling submittal list...'];
+  let si = 0;
+  const interval = setInterval(() => {
+    si = (si + 1) % steps.length;
+    const el = document.getElementById('loadingStep');
+    if (el) el.textContent = steps[si];
+  }, 1800);
+
+  try {
+    const systemPrompt = `You are a DHR Golf Construction price quote reviewer. You check quotes before they go to Joy (VP, final approver) for review. DHR is a California-based golf course construction company. Estimators Nico Ramullo and Milena Navalesi (Argentine nationals, ESL speakers) prepare quotes. Common issues: Argentine date/number formatting, Spanish text fragments, unfilled template placeholders, alternates section not cleaned up, inconsistency between scope text and line items.
+
+Return ONLY valid JSON. No preamble, no markdown fences.
+
+Schema:
+{
+  "filename": "string",
+  "project": "string",
+  "client": "string",
+  "quote_date": "string",
+  "total_issues": number,
+  "tiers": {
+    "t1": { "name": "Template Hygiene", "findings": [{ "id": "T1-1", "severity": "flag|warn|pass", "rule": "short rule name", "issue": "specific issue found", "fix": "suggested fix" }] },
+    "t2": { "name": "Internal Consistency", "findings": [...] },
+    "t3": { "name": "Structural Completeness", "findings": [...] },
+    "t4": { "name": "Source Cross-Reference", "findings": [...], "skipped": true|false }
+  },
+  "submittals": [{ "material": "string", "spec": "string|null", "spec_missing": true|false, "notes": "string" }]
+}
+
+TIER 1 — check ALL:
+- Unfilled placeholders: "x-x weeks", "XXX", "[Add note here]", "BAD DESCRIPTION", placeholder text
+- Missing required fields: Est Duration field, wage basis checkbox selected, Valid Until date
+- Spelling errors in scope (HDPE, USGA, BBB, N-12, LF, SF, EA, LS are correct industry terms)
+- Grammar errors in scope text
+- Undefined abbreviations in location descriptions (GS, NR, etc. without definition)
+- Alternates A/B/C checkboxes in acceptance block with no corresponding alternates in quote body — flag if present when no alternates exist
+- "Owner will supply" or "Owner supplied" in scope body — should reference Materials Responsibility table instead
+- Dates not in US format MM/DD/YYYY or Month DD YYYY — Argentine format is DD/MM/YYYY, flag if day > 12 is in month position or if format is ambiguous
+- Spanish language text anywhere
+- Number formatting: period as decimal separator, comma as thousands (not reversed)
+- Paper size should be US letter 8.5x11, not A4
+
+TIER 2:
+- Project description in scope matches Project field in header
+- Scope section headers match line item names in itemized quote (fuzzy match ok)
+- Scope and line items in same sequence
+- Quantities in scope text match corresponding line item quantities
+- Units consistent between scope and line items (SF/LF/EA/LS)
+- Same element named consistently throughout document
+- Material specs in scope consistent with specs section
+- If drawings/specs referenced (not "None available"), scope cites but does not repeat detailed specs
+- Every material mentioned in scope has specifications defined somewhere (type, grade, dimensions, manufacturer)
+
+TIER 3:
+- Every line item section has a corresponding scope section
+- Every scope section has a clear header
+- Non-material standalone line items (drain sump, disposal, irrigation modifications) are visually identifiable in scope, not buried inside another section's bullets
+- Multi-feature projects have an overall description before section headers
+
+TIER 4 (only if source doc provided, else skipped:true, empty findings):
+- Scope addresses all features mentioned in source document
+- Site conditions from source acknowledged in scope or notes
+
+SUBMITTALS — extract all materials requiring product submittals at job turnover:
+Concrete (mix, PSI, reinforcement), drainage pipe (type, diameter), bunker liner (product), bunker sand (spec/gradation), sod/turf (species), rootzone mix (USGA spec), gravel (gradation), any other specified material.
+For each: extract spec as written or null if missing, set spec_missing accordingly.
+
+Only include PASS findings for things commonly wrong that were verified correct. Don't pad with obvious passes. Be specific — quote the actual problematic text when flagging. Keep fixes concise.`;
+
+    const messages = [{
+      role: "user",
+      content: [
+        { type: "document", source: { type: "base64", media_type: "application/pdf", data: quoteFileData } },
+        ...(sourceFileData ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: sourceFileData } }] : []),
+        { type: "text", text: sourceFileData
+          ? "Review this price quote and source document. Run all four tiers and compile the submittal list. Return only valid JSON."
+          : "Review this price quote. Run Tiers 1-3, set t4.skipped=true with empty findings. Compile the submittal list. Return only valid JSON." }
+      ]
+    }];
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, system: systemPrompt, messages })
+    });
+
+    clearInterval(interval);
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error?.message || 'API error');
+
+    const rawText = data.content.find(b => b.type === 'text')?.text || '';
+    const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    renderResults(result);
+
+  } catch(err) {
+    clearInterval(interval);
+    content.innerHTML = `<div class="error-msg">⚠️ Error: ${err.message}<br><br>Please try again. If the problem persists, check that you are opening this file in a browser with internet access.</div>`;
+  } finally {
+    btn.disabled = false;
+    document.getElementById('runBtnIcon').textContent = '▶';
+    document.getElementById('runBtnText').textContent = 'Run Check';
+    updateRunBtn();
+  }
+}
+
+function renderResults(r) {
+  const tierColors = { t1: 'var(--t1)', t2: 'var(--t2)', t3: 'var(--t3)', t4: 'var(--t4)' };
+  let totalFlags = 0, totalWarns = 0;
+  const tierCounts = {};
+  Object.entries(r.tiers).forEach(([key, tier]) => {
+    const f = (tier.findings || []).filter(x => x.severity === 'flag').length;
+    const w = (tier.findings || []).filter(x => x.severity === 'warn').length;
+    totalFlags += f; totalWarns += w;
+    tierCounts[key] = { total: (tier.findings || []).filter(x => x.severity !== 'pass').length };
+  });
+  const missingSpecs = (r.submittals || []).filter(s => s.spec_missing).length;
+  const issueScore = totalFlags * 2 + totalWarns;
+  const scoreColor = issueScore === 0 ? 'var(--pass)' : issueScore <= 4 ? 'var(--t2)' : 'var(--t1)';
+  const scoreLabel = issueScore === 0 ? 'Ready' : issueScore <= 4 ? 'Minor issues' : 'Needs work';
+
+  let html = `
+    <div class="results-header">
+      <div>
+        <div class="results-title">${esc(r.project || 'Price Quote Review')}</div>
+        <div class="results-meta">${esc(r.client || '')}${r.client && r.quote_date ? ' · ' : ''}${esc(r.quote_date || '')}</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="print-btn" onclick="window.print()">🖨 Print</button>
+        <div class="score-pill">
+          <div><div class="score-num" style="color:${scoreColor}">${totalFlags + totalWarns}</div><div class="score-label">${scoreLabel}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="summary-row">
+      <div class="summary-card" style="border-top-color:var(--t1)"><div class="summary-card-count" style="color:var(--t1)">${tierCounts.t1?.total || 0}</div><div class="summary-card-label">Hygiene</div></div>
+      <div class="summary-card" style="border-top-color:var(--t2)"><div class="summary-card-count" style="color:var(--t2)">${tierCounts.t2?.total || 0}</div><div class="summary-card-label">Consistency</div></div>
+      <div class="summary-card" style="border-top-color:var(--t3)"><div class="summary-card-count" style="color:var(--t3)">${tierCounts.t3?.total || 0}</div><div class="summary-card-label">Structure</div></div>
+      <div class="summary-card" style="border-top-color:var(--forest)"><div class="summary-card-count" style="color:var(--forest)">${missingSpecs}</div><div class="summary-card-label">Missing specs</div></div>
+    </div>`;
+
+  ['t1','t2','t3','t4'].forEach(key => {
+    const tier = r.tiers[key];
+    if (!tier) return;
+    if (key === 't4' && tier.skipped) {
+      html += `<div class="tier-section"><div class="tier-header"><div class="tier-badge" style="background:rgba(142,68,173,0.1);color:var(--t4)">T4</div><div class="tier-name">Source Cross-Reference</div><div class="tier-count" style="color:var(--muted);font-style:italic">No source doc uploaded</div></div></div>`;
+      return;
+    }
+    const issues = (tier.findings || []).filter(f => f.severity !== 'pass');
+    const passes = (tier.findings || []).filter(f => f.severity === 'pass');
+    const count = tierCounts[key]?.total || 0;
+    const color = tierColors[key];
+    html += `
+      <div class="tier-section">
+        <div class="tier-header" onclick="toggleTier('${key}')">
+          <div class="tier-badge" style="background:${color}18;color:${color}">${key.toUpperCase()}</div>
+          <div class="tier-name">${esc(tier.name)}</div>
+          <div class="tier-count" style="color:${count===0?'var(--pass)':color}">${count===0?'✓ All clear':count+' issue'+(count!==1?'s':'')}</div>
+          <div class="tier-chevron open" id="chevron-${key}">›</div>
+        </div>
+        <div class="tier-body open" id="body-${key}">`;
+    if (issues.length === 0 && passes.length === 0) {
+      html += `<div class="all-clear">✓ No issues found in this tier</div>`;
+    } else {
+      issues.forEach(f => {
+        html += `<div class="finding"><div class="finding-icon ${f.severity==='flag'?'flag':'warn'}">${f.severity==='flag'?'!':'~'}</div><div><div class="finding-rule">${esc(f.rule||'')}</div><div class="finding-text">${esc(f.issue)}</div>${f.fix?`<div class="finding-fix"><div class="finding-fix-label">Fix</div>${esc(f.fix)}</div>`:''}</div></div>`;
+      });
+      passes.forEach(f => {
+        html += `<div class="finding"><div class="finding-icon pass">✓</div><div><div class="finding-rule">${esc(f.rule||'')}</div><div class="finding-text" style="color:var(--muted)">${esc(f.issue)}</div></div></div>`;
+      });
+    }
+    html += `</div></div>`;
+  });
+
+  if (r.submittals && r.submittals.length > 0) {
+    html += `<div class="submittal-section"><div class="submittal-header"><div class="submittal-title">📋 Submittal List</div><div class="submittal-sub">Auto-generated · for job turnover</div></div><div class="submittal-body">`;
+    r.submittals.forEach(s => {
+      html += `<div class="submittal-item"><div class="submittal-check"></div><div><div class="submittal-name">${esc(s.material)}</div>${s.spec?`<div class="submittal-spec">${esc(s.spec)}</div>`:''}${s.spec_missing?`<div class="submittal-missing">⚠ Spec missing — required for submittal</div>`:''}${s.notes?`<div class="submittal-spec" style="color:var(--muted)">${esc(s.notes)}</div>`:''}</div></div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function toggleTier(key) {
+  document.getElementById(`body-${key}`)?.classList.toggle('open');
+  document.getElementById(`chevron-${key}`)?.classList.toggle('open');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
