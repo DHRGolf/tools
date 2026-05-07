@@ -125,7 +125,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v1.9</div>
+      <div class="header-sub">Pre-submission review · v2.0</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -367,7 +367,7 @@ function runCheck() {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, system: systemPrompt, messages: [{ role: 'user', content: userContent }] })
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: systemPrompt, messages: [{ role: 'user', content: userContent }] })
   })
   .then(function(res) {
     clearInterval(interval);
