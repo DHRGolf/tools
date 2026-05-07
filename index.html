@@ -125,7 +125,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v1.8</div>
+      <div class="header-sub">Pre-submission review · v1.9</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -250,10 +250,19 @@ document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
 document.getElementById('quoteFile').addEventListener('change', function() {
   var file = this.files && this.files[0];
   if (!file) return;
-  document.getElementById('statusMsg').textContent = 'Reading file...';
+  if (file.size > 20 * 1024 * 1024) {
+    document.getElementById('statusMsg').textContent = 'File too large (max 20MB). Please reduce the PDF size.';
+    return;
+  }
+  document.getElementById('statusMsg').textContent = 'Reading file (' + (file.size / 1024).toFixed(0) + ' KB)...';
   var reader = new FileReader();
   reader.onload = function(ev) {
-    quoteFileData = ev.target.result.split(',')[1];
+    var result = ev.target.result;
+    if (!result || result.indexOf(',') === -1) {
+      document.getElementById('statusMsg').textContent = 'Error: could not parse file. Try re-exporting the PDF.';
+      return;
+    }
+    quoteFileData = result.split(',')[1];
     document.getElementById('quoteZone').classList.add('has-file');
     document.getElementById('quoteIcon').textContent = '✅';
     document.getElementById('quoteLabel').textContent = 'Quote loaded';
@@ -261,8 +270,9 @@ document.getElementById('quoteFile').addEventListener('change', function() {
     document.getElementById('runBtn').disabled = false;
     document.getElementById('statusMsg').textContent = '✓ Ready — ' + file.name;
   };
-  reader.onerror = function() {
-    document.getElementById('statusMsg').textContent = 'Error reading file.';
+  reader.onerror = function(ev) {
+    var code = ev.target && ev.target.error && ev.target.error.code;
+    document.getElementById('statusMsg').textContent = 'Error reading file (code ' + code + '). Try a different PDF.';
   };
   reader.readAsDataURL(file);
 });
