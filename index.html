@@ -125,7 +125,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v2.0</div>
+      <div class="header-sub">Pre-submission review · v2.1</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -353,7 +353,7 @@ function runCheck() {
     if (el) el.textContent = steps[si];
   }, 1800);
 
-  var systemPrompt = 'You are a golf course construction company price quote reviewer. Check quotes before they go to the VP and final approver. The company is California-based. Quotes are prepared by estimators for whom English is a second language (native Spanish speakers). Common issues: Spanish date/number formatting, Spanish text fragments, unfilled placeholders, alternates section not cleaned up, scope/line item inconsistencies.\n\nReturn ONLY valid JSON. No preamble, no markdown.\n\nSchema: {"filename":"string","project":"string","client":"string","quote_date":"string","total_issues":0,"tiers":{"t1":{"name":"Template Hygiene","findings":[{"id":"T1-1","severity":"flag","rule":"rule name","issue":"description","fix":"suggestion"}]},"t2":{"name":"Internal Consistency","findings":[]},"t3":{"name":"Structural Completeness","findings":[]},"t4":{"name":"Source Cross-Reference","findings":[],"skipped":true}},"submittals":[{"material":"name","spec":"spec or null","spec_missing":false,"notes":""}]}\n\nTIER 1: unfilled placeholders (x-x weeks, XXX, [Add note here], BAD DESCRIPTION); missing Est Duration/wage basis/Valid Until; spelling errors; grammar errors; undefined abbreviations in locations; Alternates A/B/C checkboxes present when no alternates exist; Owner will supply in scope body; dates not MM/DD/YYYY; Spanish text; number formatting (period=decimal, comma=thousands); A4 paper size.\n\nTIER 2: project description matches header; scope headers match line item names in same sequence; quantities match; units consistent (SF/LF/EA/LS); consistent naming throughout; material specs consistent with specs section; drawings referenced but not repeated; every material has specs defined.\n\nTIER 3: every line item has a scope section; every scope section has a header; standalone non-material line items (drain sump, disposal, irrigation) identifiable in scope; multi-feature projects have overall description before headers.\n\nTIER 4 (only if source doc provided, else skipped:true): scope covers all source features; site conditions acknowledged.\n\nSUBMITTALS: concrete (mix/PSI/reinforcement), drainage pipe (type/diameter), bunker liner, bunker sand, sod/turf (species), rootzone mix, gravel (gradation), any other material. Extract spec or null, set spec_missing.\n\nOnly PASS findings for commonly-wrong things verified correct. Quote problematic text when flagging.';
+  var systemPrompt = 'You are a golf course construction company price quote reviewer. Check quotes before they go to the VP and final approver. The company is California-based. Quotes are prepared by estimators for whom English is a second language (native Spanish speakers). Common issues: Spanish date/number formatting, Spanish text fragments, unfilled placeholders, alternates section not cleaned up, scope/line item inconsistencies.\n\nCRITICAL: Your ENTIRE response must be a single valid JSON object. Do NOT include any text before or after the JSON. Do NOT use markdown code fences. Do NOT include explanations. Start your response with { and end with }.\n\nSchema: {"filename":"string","project":"string","client":"string","quote_date":"string","total_issues":0,"tiers":{"t1":{"name":"Template Hygiene","findings":[{"id":"T1-1","severity":"flag","rule":"rule name","issue":"description","fix":"suggestion"}]},"t2":{"name":"Internal Consistency","findings":[]},"t3":{"name":"Structural Completeness","findings":[]},"t4":{"name":"Source Cross-Reference","findings":[],"skipped":true}},"submittals":[{"material":"name","spec":"spec or null","spec_missing":false,"notes":""}]}\n\nTIER 1: unfilled placeholders (x-x weeks, XXX, [Add note here], BAD DESCRIPTION); missing Est Duration/wage basis/Valid Until; spelling errors; grammar errors; undefined abbreviations in locations; Alternates A/B/C checkboxes present when no alternates exist; Owner will supply in scope body; dates not MM/DD/YYYY; Spanish text; number formatting (period=decimal, comma=thousands); A4 paper size.\n\nTIER 2: project description matches header; scope headers match line item names in same sequence; quantities match; units consistent (SF/LF/EA/LS); consistent naming throughout; material specs consistent with specs section; drawings referenced but not repeated; every material has specs defined.\n\nTIER 3: every line item has a scope section; every scope section has a header; standalone non-material line items (drain sump, disposal, irrigation) identifiable in scope; multi-feature projects have overall description before headers.\n\nTIER 4 (only if source doc provided, else skipped:true): scope covers all source features; site conditions acknowledged.\n\nSUBMITTALS: concrete (mix/PSI/reinforcement), drainage pipe (type/diameter), bunker liner, bunker sand, sod/turf (species), rootzone mix, gravel (gradation), any other material. Extract spec or null, set spec_missing.\n\nOnly PASS findings for commonly-wrong things verified correct. Quote problematic text when flagging.';
 
   var userContent = [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: quoteFileData } }];
   if (sourceFileData) userContent.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: sourceFileData } });
@@ -367,7 +367,7 @@ function runCheck() {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, system: systemPrompt, messages: [{ role: 'user', content: userContent }] })
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 8000, system: systemPrompt, messages: [{ role: 'user', content: userContent }] })
   })
   .then(function(res) {
     clearInterval(interval);
@@ -378,7 +378,12 @@ function runCheck() {
     if (data.error) throw new Error(data.error.message || 'API error');
     var raw = '';
     for (var i = 0; i < data.content.length; i++) { if (data.content[i].type === 'text') { raw = data.content[i].text; break; } }
-    var result = JSON.parse(raw.replace(/```json/g,'').replace(/```/g,'').trim());
+    // Strip any markdown fences or preamble text before the first {
+    var jsonStart = raw.indexOf('{');
+    var jsonEnd = raw.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1) throw new Error('No valid JSON found in response. Please try again.');
+    var clean = raw.substring(jsonStart, jsonEnd + 1);
+    var result = JSON.parse(clean);
     renderResults(result);
   })
   .catch(function(err) {
