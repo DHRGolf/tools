@@ -127,7 +127,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v2.2</div>
+      <div class="header-sub">Pre-submission review · v2.3</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -140,9 +140,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="login-sub">This tool uses the Anthropic API to review price quotes. Your key is saved in your browser and never sent anywhere except directly to Anthropic.</div>
     <label class="login-label" for="apiKeyInput">Anthropic API Key</label>
     <input type="password" id="apiKeyInput" class="login-input" placeholder="sk-ant-api03-..." autocomplete="off" />
-    <div class="login-hint">Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> &rarr; API Keys</div>
+    <div class="login-hint">Reach out to your Administrator for an API Key</div>
     <button class="login-btn" onclick="saveApiKey()">Save &amp; Continue &rarr;</button>
-    <div class="login-error" id="loginError">Please enter a valid Anthropic API key (starts with sk-ant-)</div>
+    <div class="login-error" id="loginError">Please enter a valid API key</div>
   </div>
 </div>
 
@@ -233,7 +233,7 @@ function showLogin() {
 function saveApiKey() {
   var key = document.getElementById('apiKeyInput').value.trim();
   var err = document.getElementById('loginError');
-  if (!key || key.indexOf('sk-ant-') !== 0) {
+  if (!key || key.indexOf('sk-') !== 0) {
     err.style.display = 'block';
     return;
   }
