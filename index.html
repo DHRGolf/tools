@@ -92,7 +92,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
 .tier-chevron.open { transform: rotate(90deg); }
 .tier-body { display: none; padding: 4px 0; }
 .tier-body.open { display: block; }
-.finding { padding: 14px 18px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; }
+.finding { padding: 14px 18px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; transition: background 0.15s; }
+.finding:hover { background: var(--surface); }
+.finding.resolved { background: rgba(39,174,96,0.03); }
 .finding:last-child { border-bottom: none; }
 .finding-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
 .finding-icon.flag { background: rgba(192,57,43,0.1); color: var(--t1); }
@@ -125,7 +127,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v2.1</div>
+      <div class="header-sub">Pre-submission review · v2.2</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -414,6 +416,7 @@ function renderResults(r) {
 
   var h = '<div class="results-header"><div><div class="results-title">'+esc(r.project||'Quote Review')+'</div><div class="results-meta">'+esc(r.client||'')+(r.client&&r.quote_date?' · ':'')+esc(r.quote_date||'')+'</div></div>';
   h += '<div class="action-btns"><button class="action-btn" onclick="window.print()">🖨 Print</button><button class="action-btn" onclick="dlReport(\''+esc(r.project||'Review')+'\',\''+esc(r.quote_date||'')+'\')">⬇ Download</button><div class="score-pill"><div><div class="score-num" style="color:'+sc+'">'+totalIssues+'</div><div class="score-label">'+sl+'</div></div></div></div></div>';
+  h += '<div style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:20px;">Click any issue to mark it resolved as you fix it.</div>';
   h += '<div class="summary-row"><div class="summary-card" style="border-top-color:var(--t1)"><div class="summary-card-count" style="color:var(--t1)">'+tierCounts.t1+'</div><div class="summary-card-label">Hygiene</div></div><div class="summary-card" style="border-top-color:var(--t2)"><div class="summary-card-count" style="color:var(--t2)">'+tierCounts.t2+'</div><div class="summary-card-label">Consistency</div></div><div class="summary-card" style="border-top-color:var(--t3)"><div class="summary-card-count" style="color:var(--t3)">'+tierCounts.t3+'</div><div class="summary-card-label">Structure</div></div><div class="summary-card" style="border-top-color:var(--forest)"><div class="summary-card-count" style="color:var(--forest)">'+ms+'</div><div class="summary-card-label">Missing specs</div></div></div>';
 
   for (var ti = 0; ti < tkeys.length; ti++) {
@@ -424,7 +427,7 @@ function renderResults(r) {
     h += '<div class="tier-section"><div class="tier-header" onclick="toggleTier(\''+key+'\')"><div class="tier-badge" style="background:'+col+'18;color:'+col+'">'+key.toUpperCase()+'</div><div class="tier-name-label">'+esc(tier.name)+'</div><div class="tier-count" style="color:'+(cnt===0?'var(--pass)':col)+'">'+(cnt===0?'✓ All clear':cnt+' issue'+(cnt!==1?'s':''))+'</div><div class="tier-chevron open" id="ch-'+key+'">›</div></div><div class="tier-body open" id="bd-'+key+'">';
     var ff = tier.findings||[];
     if (ff.length === 0) { h += '<div class="all-clear">✓ No issues found</div>'; }
-    else { for (var fi = 0; fi < ff.length; fi++) { var f = ff[fi]; if (f.severity==='pass') { h += '<div class="finding"><div class="finding-icon pass">✓</div><div><div class="finding-rule">'+esc(f.rule||'')+'</div><div class="finding-text" style="color:var(--muted)">'+esc(f.issue)+'</div></div></div>'; } else { h += '<div class="finding"><div class="finding-icon '+(f.severity==='flag'?'flag':'warn')+'">'+(f.severity==='flag'?'!':'~')+'</div><div><div class="finding-rule">'+esc(f.rule||'')+'</div><div class="finding-text">'+esc(f.issue)+'</div>'+(f.fix?'<div class="finding-fix"><div class="finding-fix-label">Fix</div>'+esc(f.fix)+'</div>':'')+'</div></div>'; } } }
+    else { for (var fi = 0; fi < ff.length; fi++) { var f = ff[fi]; if (f.severity==='pass') { h += '<div class="finding"><div class="finding-icon pass">✓</div><div><div class="finding-rule">'+esc(f.rule||'')+'</div><div class="finding-text" style="color:var(--muted)">'+esc(f.issue)+'</div></div></div>'; } else { var fid = 'f-'+key+'-'+fi; var sev = f.severity==='flag'?'flag':'warn'; h += '<div class="finding" id="wrap-'+fid+'" data-severity="'+sev+'" onclick="toggleFinding(\''+fid+'\')" style="cursor:pointer" title="Click to mark as resolved"><div class="finding-icon '+sev+'" id="icon-'+fid+'">'+(sev==='flag'?'!':'~')+'</div><div style="flex:1"><div class="finding-rule">'+esc(f.rule||'')+'</div><div class="finding-text" id="text-'+fid+'">'+esc(f.issue)+'</div>'+(f.fix?'<div class="finding-fix" id="fix-'+fid+'"><div class="finding-fix-label">Fix</div>'+esc(f.fix)+'</div>':'')+'</div></div>'; } } }
     h += '</div></div>';
   }
 
@@ -436,7 +439,30 @@ function renderResults(r) {
   document.getElementById('content').innerHTML = h;
 }
 
-function toggleTier(k) {
+function toggleFinding(fid) {
+  var wrap = document.getElementById('wrap-'+fid);
+  var icon = document.getElementById('icon-'+fid);
+  var text = document.getElementById('text-'+fid);
+  var fix  = document.getElementById('fix-'+fid);
+  if (!wrap) return;
+  var resolved = wrap.classList.toggle('resolved');
+  if (resolved) {
+    icon.className = 'finding-icon pass';
+    icon.textContent = '✓';
+    text.style.textDecoration = 'line-through';
+    text.style.opacity = '0.45';
+    if (fix) fix.style.display = 'none';
+  } else {
+    var isFlag = wrap.dataset.severity === 'flag';
+    icon.className = 'finding-icon ' + (isFlag ? 'flag' : 'warn');
+    icon.textContent = isFlag ? '!' : '~';
+    text.style.textDecoration = '';
+    text.style.opacity = '';
+    if (fix) fix.style.display = '';
+  }
+}
+
+
   var b = document.getElementById('bd-'+k), c = document.getElementById('ch-'+k);
   if (b) b.classList.toggle('open');
   if (c) c.classList.toggle('open');
