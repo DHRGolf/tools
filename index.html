@@ -127,7 +127,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v2.5</div>
+      <div class="header-sub">Pre-submission review · v2.6</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -473,6 +473,7 @@ function toggleFinding(fid) {
 }
 
 
+function toggleTier(k) {
   var b = document.getElementById('bd-'+k), c = document.getElementById('ch-'+k);
   if (b) b.classList.toggle('open');
   if (c) c.classList.toggle('open');
