@@ -170,7 +170,7 @@
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v1.6</div>
+      <div class="header-sub">Pre-submission review · v1.7</div>
     </div>
   </div>
   <div class="badge">Beta</div>
@@ -241,6 +241,7 @@
       <span id="runBtnIcon">▶</span>
       <span id="runBtnText">Run Check</span>
     </button>
+    <div id="statusMsg" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-align:center;min-height:16px;"></div>
 
   </div>
 
@@ -258,23 +259,37 @@ let quoteFileData = null;
 let sourceFileData = null;
 let sourceEnabled = false;
 
-document.getElementById('quoteFile').addEventListener('change', async function() {
-  const file = this.files && this.files[0];
-  if (!file) return;
-  quoteFileData = await readFileAsBase64(file);
-  document.getElementById('quoteZone').classList.add('has-file');
-  document.getElementById('quoteIcon').textContent = '✅';
-  document.getElementById('quoteLabel').textContent = 'Quote loaded';
-  document.getElementById('quoteFilename').textContent = file.name;
-  updateRunBtn();
+document.getElementById('quoteFile').addEventListener('change', function() {
+  var file = this.files && this.files[0];
+  var status = document.getElementById('statusMsg');
+  if (!file) { status.textContent = 'No file selected.'; return; }
+  status.textContent = 'Reading file: ' + file.name + '...';
+  var reader = new FileReader();
+  reader.onload = function() {
+    quoteFileData = reader.result.split(',')[1];
+    document.getElementById('quoteZone').classList.add('has-file');
+    document.getElementById('quoteIcon').textContent = '✅';
+    document.getElementById('quoteLabel').textContent = 'Quote loaded';
+    document.getElementById('quoteFilename').textContent = file.name;
+    document.getElementById('runBtn').disabled = false;
+    status.textContent = '✓ Ready — ' + file.name;
+  };
+  reader.onerror = function() {
+    status.textContent = '✗ Error reading file. Please try again.';
+  };
+  reader.readAsDataURL(file);
 });
 
-document.getElementById('sourceFile').addEventListener('change', async function() {
-  const file = this.files && this.files[0];
+document.getElementById('sourceFile').addEventListener('change', function() {
+  var file = this.files && this.files[0];
   if (!file) return;
-  sourceFileData = await readFileAsBase64(file);
-  document.getElementById('sourceZone').classList.add('has-file');
-  document.getElementById('sourceFilename').textContent = file.name;
+  var reader = new FileReader();
+  reader.onload = function() {
+    sourceFileData = reader.result.split(',')[1];
+    document.getElementById('sourceZone').classList.add('has-file');
+    document.getElementById('sourceFilename').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
 });
 
 function readFileAsBase64(file) {
