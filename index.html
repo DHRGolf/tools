@@ -127,7 +127,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v2.3</div>
+      <div class="header-sub">Pre-submission review · v2.4</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -139,7 +139,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="login-title">Enter your API key</div>
     <div class="login-sub">This tool uses the Anthropic API to review price quotes. Your key is saved in your browser and never sent anywhere except directly to Anthropic.</div>
     <label class="login-label" for="apiKeyInput">Anthropic API Key</label>
-    <input type="password" id="apiKeyInput" class="login-input" placeholder="sk-ant-api03-..." autocomplete="off" />
+    <input type="password" id="apiKeyInput" class="login-input" placeholder="sk-ant-..." autocomplete="off" />
     <div class="login-hint">Reach out to your Administrator for an API Key</div>
     <button class="login-btn" onclick="saveApiKey()">Save &amp; Continue &rarr;</button>
     <div class="login-error" id="loginError">Please enter a valid API key</div>
@@ -373,7 +373,17 @@ function runCheck() {
   })
   .then(function(res) {
     clearInterval(interval);
-    if (res.status === 401) { localStorage.removeItem('dhr_api_key'); showLogin(); throw new Error('Invalid API key.'); }
+    if (res.status === 401) {
+      return res.json().then(function(errData) {
+        var errType = errData && errData.error && errData.error.type;
+        if (errType === 'authentication_error') {
+          localStorage.removeItem('dhr_api_key');
+          showLogin();
+          throw new Error('Invalid API key — please re-enter your key.');
+        }
+        throw new Error('Authentication error (401). Please try again.');
+      });
+    }
     return res.json();
   })
   .then(function(data) {
