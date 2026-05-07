@@ -127,7 +127,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: va
     <div class="logo-mark">D</div>
     <div>
       <div class="header-title">DHR Price Quote Checker</div>
-      <div class="header-sub">Pre-submission review · v2.4</div>
+      <div class="header-sub">Pre-submission review · v2.5</div>
     </div>
   </div>
   <button class="header-link" id="apiKeyBtn" onclick="showLogin()" style="display:none;">API Key</button>
@@ -426,7 +426,7 @@ function renderResults(r) {
 
   var h = '<div class="results-header"><div><div class="results-title">'+esc(r.project||'Quote Review')+'</div><div class="results-meta">'+esc(r.client||'')+(r.client&&r.quote_date?' · ':'')+esc(r.quote_date||'')+'</div></div>';
   h += '<div class="action-btns"><button class="action-btn" onclick="window.print()">🖨 Print</button><button class="action-btn" onclick="dlReport(\''+esc(r.project||'Review')+'\',\''+esc(r.quote_date||'')+'\')">⬇ Download</button><div class="score-pill"><div><div class="score-num" style="color:'+sc+'">'+totalIssues+'</div><div class="score-label">'+sl+'</div></div></div></div></div>';
-  h += '<div style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:20px;">Click any issue to mark it resolved as you fix it.</div>';
+  h += '<div style="font-size:11px;color:#6B6B65;font-family:monospace;margin-bottom:20px;">Click any issue to mark it resolved as you fix it.</div>';
   h += '<div class="summary-row"><div class="summary-card" style="border-top-color:var(--t1)"><div class="summary-card-count" style="color:var(--t1)">'+tierCounts.t1+'</div><div class="summary-card-label">Hygiene</div></div><div class="summary-card" style="border-top-color:var(--t2)"><div class="summary-card-count" style="color:var(--t2)">'+tierCounts.t2+'</div><div class="summary-card-label">Consistency</div></div><div class="summary-card" style="border-top-color:var(--t3)"><div class="summary-card-count" style="color:var(--t3)">'+tierCounts.t3+'</div><div class="summary-card-label">Structure</div></div><div class="summary-card" style="border-top-color:var(--forest)"><div class="summary-card-count" style="color:var(--forest)">'+ms+'</div><div class="summary-card-label">Missing specs</div></div></div>';
 
   for (var ti = 0; ti < tkeys.length; ti++) {
